@@ -57,7 +57,7 @@ Note: copy all the .csv files from ```TUMDOT - MUC - Download/Trajectory Data```
 
 ```rviz2 ```
 
-(Check: Fixed Franne ->map, Add -> By Topic ->/traffic_objects -> MarkerArray)
+(After rviz2 pops out-> check left hand side “Displays": Fixed Frame -> map, Add -> By Topic ->/traffic_objects -> MarkerArray)
 
 #### Terminal3
 
