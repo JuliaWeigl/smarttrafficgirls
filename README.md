@@ -11,15 +11,13 @@ discussions:
 **HOW TO RUN NODE IN RVIZ2**
 - Terminal1 (solve Global Frame error of Rviz2):
 
-source /opt/ros/humble/setup.bash
-
 ros2 run tf2_rosstatic_transform_publisher --x 0 --y 0 --z 0 --frame-id map --child-frame-id base_link
 
 - Terminal2
 
-source /opt/ros/humble/setup.bash
+rviz2 
 
-rviz2 (Check: Fixed Franne ->map, Add -> By Topic ->/traffic_objects -> MarkerArray)
+(Check: Fixed Franne ->map, Add -> By Topic ->/traffic_objects -> MarkerArray)
 
 - Terminal3
 
