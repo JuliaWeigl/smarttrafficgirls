@@ -10,7 +10,7 @@ discussions:
 
 ## Smart Traffic ROS 2 Workspace
 
-### How to run use ```.src``` on your laptop：
+### How to run use ```/src``` on your laptop：
 #### 1. Create and enter the workspace
 
 ```mkdir -p ~/ros2_ws/src```
