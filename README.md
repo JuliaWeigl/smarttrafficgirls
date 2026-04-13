@@ -11,6 +11,11 @@ discussions:
 ## Smart Traffic ROS 2 Workspace
 
 ### How to use ```/src``` on your laptop：
+
+#### 0. Download all the .csv files
+
+https://www.mos.ed.tum.de/en/vt/research/data-sets/tumdot-muc/
+
 #### 1. Create the ROS2 workspace on your own PC
 
 ```mkdir -p ~/ros2_ws/src```
@@ -18,12 +23,11 @@ discussions:
 ```cd ~/ros2_ws/src```
 
 
-
 #### 2. Clone the code into the src directory:
 
 ```git clone git@github.com:JuliaWeigl/smarttrafficgirls.git .```
 
-
+Note: copy all the .csv files you downloaded in step0 into ```~/ros2_ws/src/data```
 
 #### 3. Go back to the workspace root:
 
