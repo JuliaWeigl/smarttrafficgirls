@@ -44,7 +44,7 @@ discussions:
 ```ros2 run smart_traffic csv_player```
 
 
-### HOW TO RUN NODE IN RVIZ2
+## How ot Run Publisher Node in Rviz2
 #### Terminal1 (solve Global Frame error of Rviz2):
 
 ```ros2 run tf2_rosstatic_transform_publisher --x 0 --y 0 --z 0 --frame-id map --child-frame-id base_link```
