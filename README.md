@@ -7,6 +7,42 @@ events
 discussions:
 - different datasets have different formatting -> hard to make general event detection
 
+**After downloading the src folder**
+# Smart Traffic ROS 2 Workspace
+
+## How to run it on your laptop：
+# 1. Create and enter the workspace
+
+mkdir -p ~/ros2_ws/src
+
+cd ~/ros2_ws/src
+
+
+
+# 2. Clone the code into the src directory:
+
+git clone git@github.com:JuliaWeigl/smarttrafficgirls.git .
+
+
+
+# 3. Go back to the workspace root:
+
+cd ~/ros2_ws
+
+
+
+# 4. Build the project (this generates the build and install folders tailored to your environment):
+
+colcon build --symlink-install
+
+
+
+# 5. Source the environment and run:
+
+source install/setup.bash
+
+ros2 run smart_traffic csv_player
+
 
 **HOW TO RUN NODE IN RVIZ2**
 - Terminal1 (solve Global Frame error of Rviz2):
