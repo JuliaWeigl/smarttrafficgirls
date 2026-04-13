@@ -1,0 +1,10 @@
+string track_id
+int32 category
+float64 speed
+float64 acceleration_x
+float64 acceleration_y
+geometry_msgs/Point position
+geometry_msgs/Quaternion orientation
+float64 dimension_x
+float64 dimension_y
+float64 dimension_z
