@@ -8,7 +8,7 @@ discussions:
 - different datasets have different formatting -> hard to make general event detection
 
 
-** HOW TO RUN NODE IN RVIZ2 **
+**HOW TO RUN NODE IN RVIZ2**
 - Terminal1 (solve Global Frame error of Rviz2):
 
 source /opt/ros/humble/setup.bash
