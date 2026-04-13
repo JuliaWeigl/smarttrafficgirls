@@ -27,7 +27,7 @@ https://www.mos.ed.tum.de/en/vt/research/data-sets/tumdot-muc/
 
 ```git clone git@github.com:JuliaWeigl/smarttrafficgirls.git .```
 
-Note: copy all the .csv files you downloaded in step0 into ```~/ros2_ws/src/data```
+Note: copy all the .csv files from ```TUMDOT - MUC - Download/Trajectory Data``` into ```~/ros2_ws/src/data```
 
 #### 3. Go back to the workspace root:
 
