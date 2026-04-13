@@ -47,7 +47,7 @@ discussions:
 ## How to Run Publisher Node in Rviz2
 #### Terminal1 (solve Global Frame error of Rviz2):
 
-```ros2 run tf2_rosstatic_transform_publisher --x 0 --y 0 --z 0 --frame-id map --child-frame-id base_link```
+```ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --frame-id map --child-frame-id base_link```
 
 #### Terminal2
 
@@ -59,4 +59,9 @@ discussions:
 
 ```source ~/ros2_ws/install/setup.bash```
 
-```ros2 run smart_traffic cs_player```
+```ros2 run smart_traffic csv_player```
+
+IMPORTANT NOTES:
+
+in csv_player_node.py change the path to your specific path. We should probably change it to a variable that chooses teh local directory.
+Add the csv file in a data folder under smart_traffic folder.
