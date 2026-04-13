@@ -59,4 +59,4 @@ discussions:
 
 ```source ~/ros2_ws/install/setup.bash```
 
-ros2 run smart_traffic cs_player
+```ros2 run smart_traffic cs_player```
