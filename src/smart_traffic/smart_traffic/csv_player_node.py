@@ -31,8 +31,7 @@ class DatasetPublisher(Node):
 
         # Load CSV
         self.get_logger().info('Loading CSV...')
-        csv_path = '/Users/juliaweigl/Desktop/TUMDOT - MUC - Download/Trajectory Data/tumdot_muc_part_1.csv'
-
+        csv_path = '../data/tumdot_muc_part_1.csv'
         cols = [
             'timestamp', 'category', 'track_id',
             'translation_x', 'translation_y', 'translation_z',
