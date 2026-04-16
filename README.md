@@ -1,8 +1,11 @@
 events
 
-1. hard braking acceleration less -2
+1. hard braking acceleration less -2 (Maleeka)
 
-2. near collision rear end of object 1 less than 2 meters of front of object 2
+2. near collision rear end of object 1 less than 2 meters of front of object 2 (Julia)
+
+3. abnormal yaw-rate change (Xiao)
+
 
 discussions:
 - different datasets have different formatting -> hard to make general event detection
