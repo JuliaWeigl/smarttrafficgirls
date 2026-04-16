@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'csv_player = smart_traffic.csv_player_node:main',
+            'event_detector = smart_traffic.event_detector:main',
         ],
     },
 )
