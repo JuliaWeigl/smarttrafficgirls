@@ -8,3 +8,5 @@ geometry_msgs/Quaternion orientation
 float64 dimension_x
 float64 dimension_y
 float64 dimension_z
+float64 velocity_x   
+float64 velocity_y 
