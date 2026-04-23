@@ -31,7 +31,8 @@ class DatasetPublisher(Node):
 
         # Load CSV
         self.get_logger().info('Loading CSV...')
-        csv_path = '../data/tumdot_muc_part_1.csv'
+        package_path = get_package_share_directory('smart_traffic')
+        csv_path = os.path.join(package_path, 'data', 'tumdot_muc_part_1.csv')
         cols = [
             'timestamp', 'category', 'track_id',
             'translation_x', 'translation_y', 'translation_z',
