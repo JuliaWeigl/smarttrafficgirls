@@ -1,3 +1,5 @@
+import os
+from ament_index_python.packages import get_package_share_directory
 import rclpy
 from rclpy.node import Node
 import pandas as pd
@@ -5,7 +7,8 @@ import math
 import tf_transformations
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
-from smart_traffic_interfaces.msg import VehicleStatus
+from std_msgs.msg import Header
+from smart_traffic_interfaces.msg import VehicleStatus, VehicleStatusArray
 import atexit
 
 
@@ -16,22 +19,24 @@ class DatasetPublisher(Node):
 
         # Publishers
         self.marker_pub = self.create_publisher(MarkerArray, 'traffic_objects', 10)
-        self.status_pub = self.create_publisher(VehicleStatus, 'vehicle_status', 10)
-
+        self.status_pub = self.create_publisher(VehicleStatusArray, 'vehicle_status_array', 10)
+        
         # Category + colors
         self.color_map = {
-            1: (0.0, 0.0, 1.0),  # Car
-            2: (0.0, 1.0, 0.0),  # Pedestrian
-            3: (1.0, 1.0, 0.0),  # Bicycle
-            4: (1.0, 0.5, 0.0),
-            5: (1.0, 0.0, 1.0),
-            6: (1.0, 0.0, 0.0),
-            7: (0.5, 0.5, 0.5),
+            1: (0.0, 0.0, 1.0), # Car - Blue
+            2: (0.0, 1.0, 0.0), # Pedestrian - Green
+            3: (1.0, 1.0, 0.0), # Bike - Yellow
+            4: (1.0, 0.5, 0.0), # Trailer - Orange
+            5: (1.0, 0.0, 1.0), # Motorcycle - Purple
+            6: (1.0, 0.0, 0.0), # Truck - Red
+            7: (0.5, 0.5, 0.5), # Bus - Gray
         }
 
         # Load CSV
         self.get_logger().info('Loading CSV...')
-        csv_path = '../data/tumdot_muc_part_1.csv'
+        package_path = get_package_share_directory('smart_traffic')
+        csv_path = os.path.join(package_path, 'data', 'tumdot_muc_part_1.csv')
+        #csv_path = '/home/watan/ros2_ws/src/smart_traffic/data/tumdot_muc_part_1.csv'
         cols = [
             'timestamp', 'category', 'track_id',
             'translation_x', 'translation_y', 'translation_z',
@@ -68,19 +73,27 @@ class DatasetPublisher(Node):
         ts = self.timestamps[self.current_step]
         current_frame = self.grouped_data[ts]
 
+        # Initialize two Arrays
         marker_array = MarkerArray()
+        status_array_msg = VehicleStatusArray()
 
+        # Fill in the header (including the current timestamp)
+        status_array_msg.header.stamp = self.get_clock().now().to_msg()
+        status_array_msg.header.frame_id = "map"
+
+         # Temporarily store a list of all vehicles in this frame
+        vehicles_list = []
         for _, row in current_frame.iterrows():
-
             cube = self.create_cube_marker(row)
             marker_array.markers.append(cube)
 
-            arrow = self.create_velocity_arrow(row, cube)
-            marker_array.markers.append(arrow)
-
+            # Collect all the vehicleStatusMsg into the list
             status_msg = self.create_vehicle_status(row, cube)
-            self.status_pub.publish(status_msg)
+            vehicles_list.append(status_msg) 
 
+        # Publish    
+        status_array_msg.vehicles = vehicles_list
+        self.status_pub.publish(status_array_msg)
         self.marker_pub.publish(marker_array)
         self.current_step += 1
 
@@ -122,16 +135,6 @@ class DatasetPublisher(Node):
         cat_id = int(row['category'])
         r, g, b = self.color_map.get(cat_id, (1.0, 1.0, 1.0))
 
-        # Acceleration-based coloring
-        ax = float(row['acceleration_x'])
-        ay = float(row['acceleration_y'])
-        a_total = math.sqrt(ax**2 + ay**2)
-
-        if a_total > 2.0:
-            r, g, b = (1.0, 0.0, 0.0)  # strong acceleration
-        elif ax < -2.0:
-            r, g, b = (1.0, 0.0, 1.0)  # braking
-
         marker.color.r = r
         marker.color.g = g
         marker.color.b = b
@@ -141,40 +144,6 @@ class DatasetPublisher(Node):
 
         return marker
 
-    def create_velocity_arrow(self, row, parent_marker):
-
-        arrow = Marker()
-        arrow.header = parent_marker.header
-        arrow.ns = "velocity_vectors"
-        arrow.id = int(row['track_id']) + 1000000
-        arrow.type = Marker.ARROW
-        arrow.action = Marker.ADD
-
-        start = Point(
-            x=parent_marker.pose.position.x,
-            y=parent_marker.pose.position.y,
-            z=parent_marker.pose.position.z
-        )
-
-        end = Point(
-            x=start.x + float(row['velocity_x']) * 0.5,
-            y=start.y + float(row['velocity_y']) * 0.5,
-            z=start.z
-        )
-
-        arrow.points = [start, end]
-        arrow.scale.x = 0.2
-        arrow.scale.y = 0.4
-        arrow.scale.z = 0.5
-
-        arrow.color.r = 1.0
-        arrow.color.g = 1.0
-        arrow.color.b = 0.0
-        arrow.color.a = 1.0
-
-        arrow.lifetime = parent_marker.lifetime
-
-        return arrow
 
     # ================================
     # VEHICLE STATUS (IMPORTANT)
