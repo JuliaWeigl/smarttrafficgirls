@@ -8,8 +8,13 @@ import pandas as pd
 import numpy as np
 import os
 
-def calculate_dynamic_threshold(csv_path):
-    cols = ['track_id', 'timestamp', 'rotation_z']
+
+def calculate_category_thresholds(csv_path):
+    """
+    Advanced preprocessing: Calculates separate thresholds for each category 
+    using IQR filtering to remove outliers before percentile calculation.
+    """
+    cols = ['track_id', 'timestamp', 'rotation_z', 'category']
     df = pd.read_csv(csv_path, usecols=cols)
     
     # grouped by track_id
@@ -19,23 +24,69 @@ def calculate_dynamic_threshold(csv_path):
     delta_angles = np.arctan2(np.sin(df['rotation_z'] - df['prev_yaw']), 
                               np.cos(df['rotation_z'] - df['prev_yaw']))
     
-    yaw_rates = (np.abs(delta_angles) / 0.08)
+    df['yaw_rate'] = np.abs(delta_angles) / 0.08
     
-    # Calculate the 97.5th percentile
-    threshold = np.percentile(yaw_rates, 97.5)
-    return threshold
+    thresholds_dict = {}
+    unique_categories = df['category'].unique()
+
+    for cat in unique_categories:
+        if cat in [2, 3]: # Skip Pedestrians and bicycles during calibration
+            continue
+        cat_data = df[df['category'] == cat]['yaw_rate']
+        
+        # Initial cleaning: Ignore obvious sensor errors/jumps
+        cat_data = cat_data[cat_data < 20.0]
+        
+        if not cat_data.empty:
+            # --- OUTLIER DETECTION (IQR Method) ---
+            Q1 = np.percentile(cat_data, 25)
+            Q3 = np.percentile(cat_data, 75)
+            IQR = Q3 - Q1
+            
+            # Set the multiplier to 2.2, which in statistics falls between “mild” and “extreme” outliers
+            iqr_boundary = Q3 + 2.2 * IQR
+            
+            # Lowering the percentile could fetch more warnings
+            percentile = np.percentile(cat_data, 96)
+            final_val = min(iqr_boundary, percentile)
+
+            # Set a floor number in case of too low threshold, since the majority of objects are driving straight
+            if cat == 1: # Car
+                final_val = max(final_val, 0.7)
+            else:
+                final_val = max(final_val, 0.5)
+            thresholds_dict[int(cat)] = final_val
+        else:
+            thresholds_dict[int(cat)] = 2.5
+
+    return thresholds_dict
+
 
 class YawRateMonitorNode(Node):
     def __init__(self):
         super().__init__('yaw_rate_monitor')
+
+        self.category_names = {
+            1: "Car",
+            2: "Pedestrian",
+            3: "Bicycle",
+            4: "Trailer",
+            5: "Motorcycle",
+            6: "Truck",
+            7: "Bus",
+            8: "Scooter",
+            9: "Streetcar"
+        }
         
         package_path = get_package_share_directory('smart_traffic')
         csv_path = os.path.join(package_path, 'data', 'tumdot_muc_part_1.csv')
 
-        # Dynamic threshold calculation (performed once at startup then print it out)
-        self.get_logger().info(f'Processing {csv_path} for dynamic threshold...')
-        self.YAW_RATE_THRESHOLD = calculate_dynamic_threshold(csv_path)
-        self.get_logger().info(f'Dynamic Threshold set to: {self.YAW_RATE_THRESHOLD:.2f} rad/s')
+        # Calculate specific thresholds for each category
+        self.get_logger().info('Calibrating category-specific thresholds...')
+        self.thresholds_dict = calculate_category_thresholds(csv_path)
+        for cat_id, threshold in self.thresholds_dict.items():
+            name = self.category_names.get(cat_id, f"Unknown({cat_id})")
+            self.get_logger().info(f"Set threshold for {name}: {threshold:.2f} rad/s")
 
         self.subscription = self.create_subscription(
             VehicleStatusArray,
@@ -43,7 +94,6 @@ class YawRateMonitorNode(Node):
             self.listener_callback,
             10)
         
-        # Rviz Marker
         self.marker_pub = self.create_publisher(MarkerArray, 'yaw_alerts', 10)
             
         self.last_angles = {}
@@ -56,8 +106,9 @@ class YawRateMonitorNode(Node):
         
         for vehicle in msg.vehicles:
             vehicle_id = vehicle.track_id
-            
-            # Convert quaternions
+            cat_id = vehicle.category
+            if cat_id in [2, 3]: # Ignore pedetrians and bicycles
+                continue
             quaternion = [
                 vehicle.orientation.x, vehicle.orientation.y,
                 vehicle.orientation.z, vehicle.orientation.w
@@ -65,33 +116,36 @@ class YawRateMonitorNode(Node):
             _, _, yaw = tf_transformations.euler_from_quaternion(quaternion)
             current_angle = yaw
             
-            # Rate is calculated only if this is not the first frame of the vehicle
             if vehicle_id in self.last_angles:
                 last_angle = self.last_angles[vehicle_id]
                 delta_angle = np.arctan2(np.sin(current_angle - last_angle), 
-                                        np.cos(current_angle - last_angle))
-                dt = 0.08 
-                yaw_rate = abs(delta_angle/dt)
+                                         np.cos(current_angle - last_angle))
                 
-                #  If the calculated threshold is too extreme (e.g., > 2.5), we force it to 2.5
-                effective_threshold = min(self.YAW_RATE_THRESHOLD, 2.5)
+                yaw_rate = abs(delta_angle / 0.08)
+                
+                # Retrieve threshold specific to this category
+                current_threshold = self.thresholds_dict.get(cat_id, 2.5)
 
-                if effective_threshold < yaw_rate < 20.0:
+                if current_threshold < yaw_rate < 20.0:
                     self.anomaly_counts[vehicle_id] = self.anomaly_counts.get(vehicle_id, 0) + 1
                     
                     if self.anomaly_counts[vehicle_id] >= 3:
                         last_time = self.last_log_time.get(vehicle_id, 0)
+                        
+                        # Cooldown mechanism for logging
                         if (current_ros_time - last_time) > 3.0:
+                            # Look up the name using the ID
+                            cat_name = self.category_names.get(cat_id, f"Unknown({cat_id})")
                             self.get_logger().error(
-                                f"SKIDDING: Vehicle {vehicle_id} | Rate: {yaw_rate:.2f} rad/s"
+                                f"🚨 SKIDDING: ID {vehicle_id} ({cat_name}) | Rate: {yaw_rate:.2f} rad/s"
                             )
                             self.last_log_time[vehicle_id] = current_ros_time
                         
+                        # RViz Interaction
                         alert_markers.markers.append(self.create_alert_marker(vehicle, msg.header))
                 else:
                     self.anomaly_counts[vehicle_id] = 0
 
-            # Angle updated for comparison in the next frame
             self.last_angles[vehicle_id] = current_angle
             
         if len(alert_markers.markers) > 0:
@@ -111,9 +165,7 @@ class YawRateMonitorNode(Node):
         marker.color.g = 0.0
         marker.color.b = 0.0
         marker.color.a = 0.7 # transparency
-        marker.scale.x = 2.5
-        marker.scale.y = 2.5
-        marker.scale.z = 2.5
+        marker.scale.x = marker.scale.y = marker.scale.z = 2.5
         
         # Lifecycle: Slightly longer than the frame interval to ensure smooth display
         marker.lifetime = rclpy.duration.Duration(seconds=0.15).to_msg()
