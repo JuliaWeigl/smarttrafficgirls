@@ -19,12 +19,14 @@ class OccupancyGridViewer(Node):
         )
 
         self.channel_names = [
-            "occupancy", "vx", "vy",
-            "ax", "ay", "speed",
-            "event", "ttc", "yaw_event"
+            "occupancy", "vx",
+            "vy", "ax",
+            "ay", "speed",
+            "event", "ttc",
+            "yaw_event", "hard_brake"
         ]
 
-        self.fig, self.axes = plt.subplots(3, 3, figsize=(16, 14))
+        self.fig, self.axes = plt.subplots(5, 2, figsize=(16, 18))
         plt.ion()
         plt.show()
 
@@ -161,6 +163,24 @@ class OccupancyGridViewer(Node):
                     yaw_x,
                     yaw_y,
                     c="magenta",
+                    s=45
+                )
+
+            elif name == "hard_brake":
+                brake_y, brake_x = np.where(data > 0)
+
+                ax.imshow(
+                    np.zeros_like(data),
+                    origin="lower",
+                    cmap="gray",
+                    vmin=0,
+                    vmax=1
+                )
+
+                ax.scatter(
+                    brake_x,
+                    brake_y,
+                    c="cyan",
                     s=45
                 )
 
