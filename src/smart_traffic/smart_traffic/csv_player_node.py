@@ -13,19 +13,18 @@ from ament_index_python.packages import get_package_share_directory
 
 from smart_traffic_interfaces.msg import (
     VehicleStatus,
-    VehicleStatusArray,
     TrafficFrame
 )
+
 
 class DatasetPublisher(Node):
 
     def __init__(self):
         super().__init__('dataset_publisher')
 
-        self.marker_pub = self.create_publisher(MarkerArray, 'traffic_objects', 10)
-        self.status_array_pub = self.create_publisher(
-            VehicleStatusArray,
-            'vehicle_status_array',
+        self.marker_pub = self.create_publisher(
+            MarkerArray,
+            'traffic_objects',
             10
         )
 
@@ -35,9 +34,14 @@ class DatasetPublisher(Node):
             10
         )
 
-        self.frame_pub = self.create_publisher(TrafficFrame, 'traffic_frame', 10)
+        self.frame_pub = self.create_publisher(
+            TrafficFrame,
+            'traffic_frame',
+            10
+        )
 
         self.near_collision_ids = set()
+
         self.create_subscription(
             String,
             'near_collision_ids',
@@ -45,18 +49,18 @@ class DatasetPublisher(Node):
             10
         )
 
-        # Category + colors
         self.color_map = {
-            1: (0.0, 0.0, 1.0), # Car - Blue
-            2: (0.0, 1.0, 0.0), # Pedestrian - Green
-            3: (1.0, 1.0, 0.0), # Bike - Yellow
-            4: (1.0, 0.5, 0.0), # Trailer - Orange
-            5: (1.0, 0.0, 1.0), # Motorcycle - Purple
-            6: (1.0, 0.0, 0.0), # Truck - Red
-            7: (0.5, 0.5, 0.5), # Bus - Gray
+            1: (0.0, 0.0, 1.0),
+            2: (0.0, 1.0, 0.0),
+            3: (1.0, 1.0, 0.0),
+            4: (1.0, 0.5, 0.0),
+            5: (1.0, 0.0, 1.0),
+            6: (1.0, 0.0, 0.0),
+            7: (0.5, 0.5, 0.5),
         }
 
         self.get_logger().info('Loading CSV...')
+
         package_path = get_package_share_directory('smart_traffic')
         csv_path = os.path.join(package_path, 'data', 'tumdot_muc_part_1.csv')
 
@@ -88,7 +92,6 @@ class DatasetPublisher(Node):
             self.near_collision_ids = set(msg.data.split(","))
 
     def timer_callback(self):
-
         if self.current_step >= len(self.timestamps):
             self.get_logger().info('Restarting dataset...')
             self.current_step = 0
@@ -97,39 +100,27 @@ class DatasetPublisher(Node):
         ts = self.timestamps[self.current_step]
         current_frame = self.grouped_data[ts]
 
-        # Initialize two Arrays
         marker_array = MarkerArray()
 
         frame_msg = TrafficFrame()
         frame_msg.timestamp = float(ts)
         frame_msg.vehicles = []
-        status_array_msg = VehicleStatusArray()
 
-        # Fill in the header (including the current timestamp)
-        status_array_msg.header.stamp = self.get_clock().now().to_msg()
-        status_array_msg.header.frame_id = "map"
-
-         # Temporarily store a list of all vehicles in this frame
-        vehicles_list = []
         for _, row in current_frame.iterrows():
             cube = self.create_cube_marker(row)
             marker_array.markers.append(cube)
 
-            # Collect all the vehicleStatusMsg into the list
             status_msg = self.create_vehicle_status(row, cube)
+
             self.status_pub.publish(status_msg)
             frame_msg.vehicles.append(status_msg)
-            vehicles_list.append(status_msg)
 
-        # Publish    
-        status_array_msg.vehicles = vehicles_list
-        self.status_array_pub.publish(status_array_msg)
         self.marker_pub.publish(marker_array)
         self.frame_pub.publish(frame_msg)
+
         self.current_step += 1
 
     def create_cube_marker(self, row):
-
         marker = Marker()
         marker.header.frame_id = "map"
         marker.header.stamp = self.get_clock().now().to_msg()
@@ -145,6 +136,7 @@ class DatasetPublisher(Node):
         roll = float(row['rotation_x'])
         pitch = float(row['rotation_y'])
         yaw = float(row['rotation_z'])
+
         q = tf_transformations.quaternion_from_euler(roll, pitch, yaw)
 
         marker.pose.orientation.x = q[0]
@@ -168,7 +160,6 @@ class DatasetPublisher(Node):
         elif ax < -2.0:
             r, g, b = (1.0, 0.0, 1.0)
 
-        # Near collision highlight overrides normal color
         if str(row['track_id']) in self.near_collision_ids:
             r, g, b = (0.3, 0.9, 1.0)
 
@@ -181,9 +172,7 @@ class DatasetPublisher(Node):
 
         return marker
 
-
     def create_vehicle_status(self, row, marker):
-
         msg = VehicleStatus()
 
         msg.track_id = str(row['track_id'])
@@ -208,15 +197,19 @@ class DatasetPublisher(Node):
         return msg
 
     def cleanup_markers(self):
+        if not rclpy.ok():
+            return
+
         self.get_logger().info('Cleaning markers...')
+
         cleanup = MarkerArray()
 
         for ns in ["objects", "velocity_vectors"]:
-            m = Marker()
-            m.header.frame_id = "map"
-            m.ns = ns
-            m.action = Marker.DELETEALL
-            cleanup.markers.append(m)
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.ns = ns
+            marker.action = Marker.DELETEALL
+            cleanup.markers.append(marker)
 
         self.marker_pub.publish(cleanup)
 

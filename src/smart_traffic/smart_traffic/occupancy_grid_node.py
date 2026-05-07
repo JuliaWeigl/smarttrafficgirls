@@ -21,7 +21,7 @@ class OccupancyGridNode(Node):
         self.grid_width = 360
         self.grid_height = 115
 
-        self.num_channels = 9
+        self.num_channels = 10
 
         self.OCCUPANCY = 0
         self.VX = 1
@@ -32,6 +32,7 @@ class OccupancyGridNode(Node):
         self.EVENT = 6
         self.TTC = 7
         self.YAW_EVENT = 8
+        self.HARD_BRAKE_EVENT = 9
 
         self.distance_threshold = 0.3
         self.ttc_threshold = 1.5
@@ -39,6 +40,7 @@ class OccupancyGridNode(Node):
 
         self.near_collision_ids = set()
         self.yaw_anomaly_ids = set()
+        self.hard_brake_ids = set()
 
         self.create_subscription(
             TrafficFrame,
@@ -61,13 +63,22 @@ class OccupancyGridNode(Node):
             10
         )
 
+        self.create_subscription(
+            String,
+            'hard_brake_ids',
+            self.hard_brake_callback,
+            10
+        )
+
         self.grid_pub = self.create_publisher(
             Float32MultiArray,
             'multi_channel_occupancy_grid',
             10
         )
 
-        self.get_logger().info('Occupancy Grid Node started with yaw event channel')
+        self.get_logger().info(
+            'Occupancy Grid Node started with yaw and hard brake event channels'
+        )
 
     def near_collision_callback(self, msg):
         if msg.data == "":
@@ -80,6 +91,12 @@ class OccupancyGridNode(Node):
             self.yaw_anomaly_ids = set()
         else:
             self.yaw_anomaly_ids = set(msg.data.split(","))
+
+    def hard_brake_callback(self, msg):
+        if msg.data == "":
+            self.hard_brake_ids = set()
+        else:
+            self.hard_brake_ids = set(msg.data.split(","))
 
     def traffic_frame_callback(self, msg):
         grid = self.build_grid(msg)
@@ -141,6 +158,11 @@ class OccupancyGridNode(Node):
             if track_id in object_cell_map:
                 cell_x, cell_y = object_cell_map[track_id]
                 grid[self.YAW_EVENT, cell_y, cell_x] = 1.0
+
+        for track_id in self.hard_brake_ids:
+            if track_id in object_cell_map:
+                cell_x, cell_y = object_cell_map[track_id]
+                grid[self.HARD_BRAKE_EVENT, cell_y, cell_x] = 1.0
 
         self.fill_ttc_channel(grid, vehicles, object_cell_map)
 
