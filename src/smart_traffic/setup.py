@@ -41,6 +41,7 @@ setup(
             'occupancy_grid_viewer = smart_traffic.occupancy_grid_viewer:main',
             'collision_detector = smart_traffic.collision_detector:main',
             'yaw_monitor = smart_traffic.yaw_rate_monitor_node:main',
+            'hard_brake_detector = smart_traffic.hard_brake_detector_node:main',
         ],
     },
 )
