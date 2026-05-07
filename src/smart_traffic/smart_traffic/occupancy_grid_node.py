@@ -13,7 +13,6 @@ class OccupancyGridNode(Node):
     def __init__(self):
         super().__init__('occupancy_grid_node')
 
-        # TODO: nach deinem Bounds-Script anpassen
         self.resolution = 2.0
 
         self.origin_x = -376.8214
@@ -22,7 +21,7 @@ class OccupancyGridNode(Node):
         self.grid_width = 360
         self.grid_height = 115
 
-        self.num_channels = 8
+        self.num_channels = 9
 
         self.OCCUPANCY = 0
         self.VX = 1
@@ -32,12 +31,14 @@ class OccupancyGridNode(Node):
         self.SPEED = 5
         self.EVENT = 6
         self.TTC = 7
+        self.YAW_EVENT = 8
 
         self.distance_threshold = 0.3
         self.ttc_threshold = 1.5
         self.min_closing_speed = 0.1
 
         self.near_collision_ids = set()
+        self.yaw_anomaly_ids = set()
 
         self.create_subscription(
             TrafficFrame,
@@ -53,19 +54,32 @@ class OccupancyGridNode(Node):
             10
         )
 
+        self.create_subscription(
+            String,
+            'yaw_anomaly_ids',
+            self.yaw_anomaly_callback,
+            10
+        )
+
         self.grid_pub = self.create_publisher(
             Float32MultiArray,
             'multi_channel_occupancy_grid',
             10
         )
 
-        self.get_logger().info('Occupancy Grid Node started')
+        self.get_logger().info('Occupancy Grid Node started with yaw event channel')
 
     def near_collision_callback(self, msg):
         if msg.data == "":
             self.near_collision_ids = set()
         else:
             self.near_collision_ids = set(msg.data.split(","))
+
+    def yaw_anomaly_callback(self, msg):
+        if msg.data == "":
+            self.yaw_anomaly_ids = set()
+        else:
+            self.yaw_anomaly_ids = set(msg.data.split(","))
 
     def traffic_frame_callback(self, msg):
         grid = self.build_grid(msg)
@@ -83,14 +97,11 @@ class OccupancyGridNode(Node):
             dtype=np.float32
         )
 
-        # -1 bedeutet: kein TTC-Wert vorhanden
         grid[self.TTC, :, :] = -1.0
 
         object_cell_map = {}
-
         vehicles = frame_msg.vehicles
 
-        # 1. Fahrzeugdaten ins Grid schreiben
         for vehicle in vehicles:
             cell = self.world_to_grid(
                 vehicle.position.x,
@@ -113,7 +124,6 @@ class OccupancyGridNode(Node):
 
             counts[cell_y, cell_x] += 1.0
 
-        # 2. Falls mehrere Objekte in einer Zelle sind: Durchschnitt bilden
         occupied_cells = counts > 0
 
         grid[self.VX][occupied_cells] /= counts[occupied_cells]
@@ -122,13 +132,16 @@ class OccupancyGridNode(Node):
         grid[self.AY][occupied_cells] /= counts[occupied_cells]
         grid[self.SPEED][occupied_cells] /= counts[occupied_cells]
 
-        # 3. Near-collision Event Channel setzen
         for track_id in self.near_collision_ids:
             if track_id in object_cell_map:
                 cell_x, cell_y = object_cell_map[track_id]
                 grid[self.EVENT, cell_y, cell_x] = 1.0
 
-        # 4. TTC selber berechnen und in Grid projizieren
+        for track_id in self.yaw_anomaly_ids:
+            if track_id in object_cell_map:
+                cell_x, cell_y = object_cell_map[track_id]
+                grid[self.YAW_EVENT, cell_y, cell_x] = 1.0
+
         self.fill_ttc_channel(grid, vehicles, object_cell_map)
 
         return grid

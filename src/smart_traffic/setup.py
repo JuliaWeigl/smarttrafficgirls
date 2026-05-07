@@ -37,7 +37,6 @@ setup(
     entry_points={
         'console_scripts': [
             'csv_player = smart_traffic.csv_player_node:main',
-            'event_detector = smart_traffic.collision_detector:main',
             'occupancy_grid_node = smart_traffic.occupancy_grid_node:main',
             'occupancy_grid_viewer = smart_traffic.occupancy_grid_viewer:main',
             'collision_detector = smart_traffic.collision_detector:main',
