@@ -1,4 +1,6 @@
 import os
+
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'smart_traffic'
@@ -8,10 +10,18 @@ setup(
     version='0.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-        (os.path.join('share', package_name, 'data'), ['data/tumdot_muc_part_1.csv']),
+        (
+            'share/ament_index/resource_index/packages',
+            ['resource/' + package_name]
+        ),
+        (
+            'share/' + package_name,
+            ['package.xml']
+        ),
+        (
+            os.path.join('share', package_name, 'data'),
+            glob('data/*')
+        ),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +37,9 @@ setup(
     entry_points={
         'console_scripts': [
             'csv_player = smart_traffic.csv_player_node:main',
+            'event_detector = smart_traffic.collision_detector:main',
+            'occupancy_grid_node = smart_traffic.occupancy_grid_node:main',
+            'occupancy_grid_viewer = smart_traffic.occupancy_grid_viewer:main',
             'collision_detector = smart_traffic.collision_detector:main',
             'yaw_monitor = smart_traffic.yaw_rate_monitor_node:main',
         ],

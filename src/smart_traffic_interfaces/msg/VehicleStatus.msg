@@ -1,5 +1,6 @@
 string track_id
 int32 category
+float64 timestamp
 float64 speed
 float64 acceleration_x
 float64 acceleration_y
