@@ -1,5 +1,6 @@
-from glob import glob
 import os
+
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'smart_traffic'
@@ -39,6 +40,8 @@ setup(
             'event_detector = smart_traffic.collision_detector:main',
             'occupancy_grid_node = smart_traffic.occupancy_grid_node:main',
             'occupancy_grid_viewer = smart_traffic.occupancy_grid_viewer:main',
+            'collision_detector = smart_traffic.collision_detector:main',
+            'yaw_monitor = smart_traffic.yaw_rate_monitor_node:main',
         ],
     },
 )
