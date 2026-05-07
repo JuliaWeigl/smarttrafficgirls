@@ -15,7 +15,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/VehicleStatus.msg"
-  DEPENDENCIES geometry_msgs
+  "msg/VehicleStatusArray.msg"
+  DEPENDENCIES geometry_msgs std_msgs
 )
 
 if(BUILD_TESTING)
