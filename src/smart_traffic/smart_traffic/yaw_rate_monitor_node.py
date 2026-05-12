@@ -1,13 +1,10 @@
 import os
-
 import rclpy
 from rclpy.node import Node
-
 from smart_traffic_interfaces.msg import TrafficFrame
 from visualization_msgs.msg import Marker, MarkerArray
 from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import String, Header
-
 import tf_transformations
 import pandas as pd
 import numpy as np
@@ -31,7 +28,7 @@ def calculate_category_thresholds(csv_path):
     thresholds_dict = {}
 
     for cat in df['category'].unique():
-        if cat in [2, 3]:
+        if cat in [2, 3]: # skip bikes and pedestrians
             continue
 
         cat_data = df[df['category'] == cat]['yaw_rate']

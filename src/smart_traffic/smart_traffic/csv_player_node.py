@@ -50,13 +50,13 @@ class DatasetPublisher(Node):
         )
 
         self.color_map = {
-            1: (0.0, 0.0, 1.0),
-            2: (0.0, 1.0, 0.0),
-            3: (1.0, 1.0, 0.0),
-            4: (1.0, 0.5, 0.0),
-            5: (1.0, 0.0, 1.0),
-            6: (1.0, 0.0, 0.0),
-            7: (0.5, 0.5, 0.5),
+            1: (0.0, 0.0, 1.0), # Car - Blue
+            2: (0.0, 1.0, 0.0), # Pedestrian - Green
+            3: (1.0, 1.0, 0.0), # Bike - Yellow
+            4: (1.0, 0.5, 0.0), # Trailer - Orange
+            5: (1.0, 0.0, 1.0), # Motorcycle - Purple
+            6: (1.0, 0.0, 0.0), # Truck - Red
+            7: (0.5, 0.5, 0.5), # Bus - Gray
         }
 
         self.get_logger().info('Loading CSV...')
@@ -150,15 +150,6 @@ class DatasetPublisher(Node):
 
         cat_id = int(row['category'])
         r, g, b = self.color_map.get(cat_id, (1.0, 1.0, 1.0))
-
-        ax = float(row['acceleration_x'])
-        ay = float(row['acceleration_y'])
-        a_total = math.sqrt(ax**2 + ay**2)
-
-        if a_total > 2.0:
-            r, g, b = (1.0, 0.0, 0.0)
-        elif ax < -2.0:
-            r, g, b = (1.0, 0.0, 1.0)
 
         if str(row['track_id']) in self.near_collision_ids:
             r, g, b = (0.3, 0.9, 1.0)
