@@ -68,7 +68,55 @@ Note: copy all the .csv files from ```TUMDOT - MUC - Download/Trajectory Data```
 
 ```ros2 run smart_traffic csv_player```
 
+#### Terminal 4
+```cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic collision_detector
+
+#### Terminal 5
+cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic yaw_monitor
+
+#### Terminal6
+cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic hard_brake_detector
+
+#### Terminal7
+cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic occupancy_grid_node
+
+#### Terminal8
+cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic occupancy_grid_viewer
+
+#### Terminal9
+cd ~/ros2_ws
+
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+
+ros2 run smart_traffic occupancy_grid_recorder
+
 IMPORTANT NOTES:
 
 in csv_player_node.py change the path to your specific path. We should probably change it to a variable that chooses teh local directory.
-Add the csv file in a data folder under smart_traffic folder.
+Add the csv file in a data folder under smart_traffic folder.  
