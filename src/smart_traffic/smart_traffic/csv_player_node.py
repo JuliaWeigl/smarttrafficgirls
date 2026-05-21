@@ -1,4 +1,5 @@
 import os
+import re
 import math
 import atexit
 
@@ -15,6 +16,16 @@ from smart_traffic_interfaces.msg import (
     VehicleStatus,
     TrafficFrame
 )
+
+
+def csv_part_number(path):
+    filename = os.path.basename(path)
+    match = re.search(r'tumdot_muc_part_(\d+)\.csv', filename)
+
+    if match is None:
+        return 999999
+
+    return int(match.group(1))
 
 
 class DatasetPublisher(Node):
@@ -59,12 +70,7 @@ class DatasetPublisher(Node):
             7: (0.5, 0.5, 0.5), # Bus - Gray
         }
 
-        self.get_logger().info('Loading CSV...')
-
-        package_path = get_package_share_directory('smart_traffic')
-        csv_path = os.path.join(package_path, 'data', 'tumdot_muc_part_1.csv')
-
-        cols = [
+        self.cols = [
             'timestamp', 'category', 'track_id',
             'translation_x', 'translation_y', 'translation_z',
             'dimension_x', 'dimension_y', 'dimension_z',
@@ -73,17 +79,67 @@ class DatasetPublisher(Node):
             'acceleration_x', 'acceleration_y',
         ]
 
-        df = pd.read_csv(csv_path, usecols=cols)
+        package_path = get_package_share_directory('smart_traffic')
+        data_dir = os.path.join(package_path, 'data')
+
+        self.csv_files = [
+            os.path.join(data_dir, file_name)
+            for file_name in os.listdir(data_dir)
+            if file_name.startswith('tumdot_muc_part_')
+            and file_name.endswith('.csv')
+        ]
+
+        self.csv_files = sorted(self.csv_files, key=csv_part_number)
+
+        if not self.csv_files:
+            raise FileNotFoundError(
+                f'No tumdot_muc_part_*.csv files found in {data_dir}'
+            )
+
+        self.get_logger().info(
+            f'Found {len(self.csv_files)} CSV files'
+        )
+
+        self.current_csv_index = 0
+        self.grouped_data = {}
+        self.timestamps = []
+        self.current_step = 0
+
+        self.load_current_csv()
+
+        self.timer = self.create_timer(0.005, self.timer_callback)
+        atexit.register(self.cleanup_markers)
+
+        self.get_logger().info('Dataset playback started')
+
+    def load_current_csv(self):
+        csv_path = self.csv_files[self.current_csv_index]
+
+        self.get_logger().info(
+            f'Loading CSV {self.current_csv_index + 1}/{len(self.csv_files)}: '
+            f'{os.path.basename(csv_path)}'
+        )
+
+        df = pd.read_csv(csv_path, usecols=self.cols)
 
         self.grouped_data = dict(list(df.groupby('timestamp')))
         self.timestamps = sorted(self.grouped_data.keys())
         self.current_step = 0
 
-        self.timer = self.create_timer(0.08, self.timer_callback)
+        self.get_logger().info(
+            f'Loaded {len(df)} rows and {len(self.timestamps)} timestamps'
+        )
 
-        atexit.register(self.cleanup_markers)
+    def load_next_csv(self):
+        self.current_csv_index += 1
 
-        self.get_logger().info('Dataset playback started')
+        if self.current_csv_index >= len(self.csv_files):
+            self.get_logger().info(
+                'Finished all CSV files. Restarting from first CSV...'
+            )
+            self.current_csv_index = 0
+
+        self.load_current_csv()
 
     def near_collision_callback(self, msg):
         if msg.data == "":
@@ -93,8 +149,8 @@ class DatasetPublisher(Node):
 
     def timer_callback(self):
         if self.current_step >= len(self.timestamps):
-            self.get_logger().info('Restarting dataset...')
-            self.current_step = 0
+            self.get_logger().info('Current CSV finished. Loading next CSV...')
+            self.load_next_csv()
             return
 
         ts = self.timestamps[self.current_step]
