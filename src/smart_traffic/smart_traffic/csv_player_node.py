@@ -107,8 +107,7 @@ class DatasetPublisher(Node):
 
         self.load_current_csv()
 
-        self.timer = self.create_timer(0.08, self.timer_callback)
-
+        self.timer = self.create_timer(0.005, self.timer_callback)
         atexit.register(self.cleanup_markers)
 
         self.get_logger().info('Dataset playback started')

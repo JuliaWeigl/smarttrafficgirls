@@ -30,9 +30,7 @@ class OccupancyGridRecorder(Node):
         # OUTPUT DIRECTORY
         # =====================================================
 
-        self.output_dir = os.path.expanduser(
-            '~/ros2_ws/grid_dataset'
-        )
+        self.output_dir = '/media/pink-rabbit/Data/SmartTrafficMonitoring/smarttrafficgirls/grid_dataset'
 
         os.makedirs(self.output_dir, exist_ok=True)
 
